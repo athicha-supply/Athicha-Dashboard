@@ -48,11 +48,11 @@ except ImportError:
 # CONFIG -- edit directly, or leave as-is to pull from environment variables
 # ---------------------------------------------------------------------------
 CONFIG = {
-    "host": os.environ.get("SQLSERVER_HOST", "192.168.1.54"),
+    "host": os.environ.get("SQLSERVER_HOST", "server"),
     "port": os.environ.get("SQLSERVER_PORT", "1433"),
-    "database": os.environ.get("SQLSERVER_DB", "ATC"),
-    "user": os.environ.get("SQLSERVER_USER", "aticha"),
-    "password": os.environ.get("SQLSERVER_PASSWORD", "sales2011"),
+    "database": os.environ.get("SQLSERVER_DB", "db"),
+    "user": os.environ.get("SQLSERVER_USER", "user"),
+    "password": os.environ.get("SQLSERVER_PASSWORD", "password"),
     "use_windows_auth": False,
     "driver": "{ODBC Driver 17 for SQL Server}",
 }
