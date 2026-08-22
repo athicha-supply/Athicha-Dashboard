@@ -7,3 +7,4 @@
 /run_dashboard.bat
 /__pycache__/
 *.pyc
+*.log
