@@ -4,3 +4,6 @@
 /view_exports
 /view_exports.rar
 /view_schemas.json
+/run_dashboard.bat
+/__pycache__/
+*.pyc

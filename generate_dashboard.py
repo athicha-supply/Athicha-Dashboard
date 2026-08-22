@@ -259,6 +259,10 @@ def run_git_command(args):
 
 
 def auto_commit_and_push():
+    if os.environ.get("AUTO_GIT_PUSH", "0").strip().lower() not in {"1", "true", "yes", "on"}:
+        print("Auto Git push is disabled. Set AUTO_GIT_PUSH=1 to publish to GitHub.")
+        return
+
     repo_root = os.path.dirname(os.path.abspath(__file__))
     git_dir = os.path.join(repo_root, ".git")
     if not os.path.isdir(git_dir):
