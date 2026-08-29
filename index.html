@@ -8,6 +8,8 @@
 <script src="customer_analytics.js"></script>
 <script src="purchase_analytics.js"></script>
 <script src="product_analytics.js"></script>
+<script src="expense_analytics.js"></script>
+<script src="inventory_analytics.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
@@ -118,7 +120,7 @@ select{
 
 /* ---------- Layout ---------- */
 .wrap{max-width:1280px; margin:0 auto; padding:20px 32px 60px;}
-.page-nav{max-width:1280px; margin:0 auto; padding:18px 32px 0; display:flex; gap:8px;}
+.page-nav{max-width:1280px; margin:0 auto; padding:18px 32px 0; display:flex; gap:8px; flex-wrap:wrap;}
 .page-nav button{border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:8px; padding:9px 18px; font-family:'IBM Plex Sans Thai',sans-serif; font-size:13px; font-weight:600; cursor:pointer;}
 .page-nav button.active{background:var(--navy); border-color:var(--navy); color:#fff;}
 .page-view[hidden]{display:none;}
@@ -208,6 +210,10 @@ tr:last-child td{border-bottom:none;}
   <button data-page="customers">พฤติกรรมลูกค้า</button>
   <button data-page="purchases">วิเคราะห์ยอดซื้อ</button>
   <button data-page="products">วิเคราะห์สินค้า</button>
+  <button data-page="finance">สุขภาพการเงิน</button>
+  <button data-page="expenses">ค่าใช้จ่าย</button>
+  <button data-page="inventory">สต็อก</button>
+  <button data-page="executive">Executive Insights</button>
 </nav>
 
 <div class="controls">
@@ -400,6 +406,32 @@ tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<div class="wrap page-view" id="financePage" hidden>
+  <div class="customer-kpis"><div class="customer-kpi"><span>ยอดขาย</span><strong id="finSales">—</strong></div><div class="customer-kpi"><span>กำไรขั้นต้น</span><strong id="finGross">—</strong></div><div class="customer-kpi"><span>กำไรสุทธิ</span><strong id="finNet">—</strong></div><div class="customer-kpi"><span>เงินรับชำระ</span><strong id="finPayment">—</strong></div></div>
+  <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">อัตราส่วนสำคัญ</h3><span class="card-note">คำนวณจากข้อมูลในปีที่เลือก</span></div><table><tbody id="financeRatioTable"></tbody></table></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">เปรียบเทียบกับปีก่อน</h3><span class="card-note">การเปลี่ยนแปลงแบบปีต่อปี</span></div><table><tbody id="financeYoyTable"></tbody></table></div></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">สุขภาพการเงินรายเดือน</h3><span class="card-note">ยอดขาย รับชำระ ต้นทุน ค่าใช้จ่าย และกำไร</span></div><div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>เดือน</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">รับชำระ</th><th style="text-align:right">ยอดซื้อ</th><th style="text-align:right">ค่าใช้จ่าย</th><th style="text-align:right">กำไรสุทธิ</th><th style="text-align:right">อัตรากำไร</th><th>สถานะ</th></tr></thead><tbody id="financeMonthlyTable"></tbody></table></div></div>
+</div>
+
+<div class="wrap page-view" id="expensesPage" hidden>
+  <div class="customer-kpis"><div class="customer-kpi"><span>ค่าใช้จ่ายรวม</span><strong id="expenseTotal">—</strong></div><div class="customer-kpi"><span>รายการบัญชี</span><strong id="expenseTransactions">—</strong></div><div class="customer-kpi"><span>บัญชีค่าใช้จ่าย</span><strong id="expenseAccounts">—</strong></div><div class="customer-kpi"><span>เฉลี่ยต่อเดือน</span><strong id="expenseAverage">—</strong></div></div>
+  <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">แนวโน้มรายเดือน</h3><span class="card-note">เทียบกับค่าเฉลี่ยของปี</span></div><table><thead><tr><th>เดือน</th><th style="text-align:right">ค่าใช้จ่าย</th><th style="text-align:right">ต่างจากเฉลี่ย</th><th style="text-align:right">รายการ</th></tr></thead><tbody id="expenseMonthlyTable"></tbody></table></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">บัญชีค่าใช้จ่ายสูงสุด</h3><span class="card-note">15 อันดับ</span></div><table><thead><tr><th>บัญชี</th><th style="text-align:right">มูลค่า</th><th style="text-align:right">สัดส่วน</th></tr></thead><tbody id="topExpenseTable"></tbody></table></div></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">รายละเอียดค่าใช้จ่าย</h3><span class="card-note" id="expenseResultCount"></span></div><div class="customer-tools"><span class="control-label">เรียงตาม</span><select id="expenseMetricSelect"><option value="value">มูลค่า</option><option value="transactions">จำนวนรายการ</option><option value="growth">อัตราเติบโต</option><option value="avgTransaction">เฉลี่ยต่อรายการ</option></select><input id="expenseSearch" type="search" placeholder="ค้นหาชื่อบัญชี"></div><div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>บัญชี</th><th style="text-align:right">มูลค่า</th><th style="text-align:right">สัดส่วน</th><th style="text-align:right">รายการ</th><th style="text-align:right">เฉลี่ย/รายการ</th><th style="text-align:right">เดือนที่เคลื่อนไหว</th><th style="text-align:right">เทียบปีก่อน</th></tr></thead><tbody id="expenseDetailTable"></tbody></table></div></div>
+</div>
+
+<div class="wrap page-view" id="inventoryPage" hidden>
+  <div class="customer-kpis"><div class="customer-kpi"><span>มูลค่าสต็อกปัจจุบัน</span><strong id="inventoryValue">—</strong></div><div class="customer-kpi"><span>จำนวนคงเหลือ</span><strong id="inventoryQty">—</strong></div><div class="customer-kpi"><span>รายการสินค้า</span><strong id="inventoryProducts">—</strong></div><div class="customer-kpi"><span>สต็อกติดลบ</span><strong id="inventoryNegative">—</strong></div></div>
+  <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">มูลค่าสต็อกตามกลุ่ม</h3><span class="card-note">สถานะปัจจุบัน</span></div><table><thead><tr><th>กลุ่ม</th><th style="text-align:right">สินค้า</th><th style="text-align:right">มูลค่า</th><th style="text-align:right">ติดลบ</th></tr></thead><tbody id="inventoryGroupTable"></tbody></table></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">สัญญาณสต็อก</h3><span class="card-note">อ้างอิงยอดขายของปีที่เลือก</span></div><table><thead><tr><th>สัญญาณ</th><th style="text-align:right">สินค้า</th><th style="text-align:right">มูลค่าสต็อก</th></tr></thead><tbody id="inventorySignalTable"></tbody></table><p class="behavior-note">สต็อกเป็นข้อมูล ณ วันที่ export ไม่ใช่ยอดคงเหลือย้อนหลังของปีที่เลือก</p></div></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">รายละเอียดสต็อกสินค้า</h3><span class="card-note" id="inventoryResultCount"></span></div><div class="customer-tools"><select id="inventorySignalSelect"><option value="all">ทุกสถานะ</option><option value="negative">ติดลบ</option><option value="noSales">ไม่มีการขายในปี</option><option value="slow">เคลื่อนไหวช้า</option><option value="low">ขายดีแต่สต็อกต่ำ</option><option value="normal">ปกติ</option><option value="unknown">ไม่มีข้อมูลยอดขาย</option></select><input id="inventorySearch" type="search" placeholder="ค้นหาสินค้า รหัส หรือกลุ่ม"></div><div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>สินค้า</th><th>กลุ่ม</th><th>สถานะ</th><th style="text-align:right">คงเหลือ</th><th style="text-align:right">มูลค่า</th><th style="text-align:right">ขายในปี</th><th style="text-align:right">หมุนเวียน</th></tr></thead><tbody id="inventoryDetailTable"></tbody></table></div></div>
+</div>
+
+<div class="wrap page-view" id="executivePage" hidden>
+  <div class="card"><div class="card-head"><h3 class="card-title" id="executiveTitle">Executive Insights</h3><span class="card-note">ประเด็นสำคัญที่ควรติดตาม</span></div><div id="executiveInsights" class="grid-2"></div></div>
+  <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">ตัวชี้วัดเทียบปีก่อน</h3></div><table><thead><tr><th>ตัวชี้วัด</th><th style="text-align:right">ปีที่เลือก</th><th style="text-align:right">เปลี่ยนแปลง</th></tr></thead><tbody id="executiveKpiTable"></tbody></table></div><div class="card"><div class="card-head"><h3 class="card-title">รายการที่ต้องจับตา</h3></div><table><tbody id="executiveWatchTable"></tbody></table></div></div>
+</div>
+
 <div class="footer">
   <p><b>หมายเหตุข้อมูล:</b> ยอดขาย/ซื้อ คำนวณจากมูลค่าก่อน VAT (netval) · ค่าใช้จ่ายดำเนินงานกรองเฉพาะบัญชีหมวดค่าใช้จ่าย (กลุ่ม 5) และตัดรายการ "ซื้อ" ออกเพื่อไม่ให้นับซ้ำกับยอดซื้อ · ข้อมูลย้อนหลังของยอดซื้อ/ค่าใช้จ่าย/เงินรับเริ่มบันทึกตั้งแต่ปี 2020–2021 เป็นต้นไป ปีก่อนหน้าจึงแสดงเฉพาะยอดขาย · ข้อมูลชุดนี้เป็นข้อมูล export ณ เวลาที่ดึง ไม่ใช่ real-time</p>
 </div>
@@ -459,7 +491,7 @@ yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('
 yearSelect.value = selectedYear;
 
 document.getElementById('metricSelect').addEventListener('change', e=>{ metric = e.target.value; renderMain(); renderDetail(); });
-yearSelect.addEventListener('change', e=>{ selectedYear = e.target.value; renderMain(); renderDetail(); renderCustomers(); renderPurchases(); renderProducts(); });
+yearSelect.addEventListener('change', e=>{ selectedYear = e.target.value; renderMain(); renderDetail(); renderCustomers(); renderPurchases(); renderProducts(); renderFinance(); renderExpenses(); renderInventory(); renderExecutive(); });
 
 document.querySelectorAll('.page-nav button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -471,16 +503,24 @@ document.querySelectorAll('.page-nav button').forEach(btn=>{
     document.getElementById('customersPage').hidden = page !== 'customers';
     document.getElementById('purchasesPage').hidden = page !== 'purchases';
     document.getElementById('productsPage').hidden = page !== 'products';
+    document.getElementById('financePage').hidden = page !== 'finance';
+    document.getElementById('expensesPage').hidden = page !== 'expenses';
+    document.getElementById('inventoryPage').hidden = page !== 'inventory';
+    document.getElementById('executivePage').hidden = page !== 'executive';
     document.getElementById('modeLabel').style.display = isOverview ? 'inline' : 'none';
     document.getElementById('modeSeg').style.display = isOverview ? 'flex' : 'none';
-    document.getElementById('metricLabel').style.display = ['customers','purchases','products'].includes(page) ? 'none' : 'inline';
-    document.getElementById('metricSelect').style.display = ['customers','purchases','products'].includes(page) ? 'none' : 'inline-block';
+    document.getElementById('metricLabel').style.display = ['overview','detail'].includes(page) ? 'inline' : 'none';
+    document.getElementById('metricSelect').style.display = ['overview','detail'].includes(page) ? 'inline-block' : 'none';
     document.getElementById('yearLabel').style.display = !isOverview || mode!=='yearly' ? 'inline' : 'none';
     yearSelect.style.display = !isOverview || mode!=='yearly' ? 'inline-block' : 'none';
     if(page === 'detail') renderDetail();
     if(page === 'customers') renderCustomers();
     if(page === 'purchases') renderPurchases();
     if(page === 'products') renderProducts();
+    if(page === 'finance') renderFinance();
+    if(page === 'expenses') renderExpenses();
+    if(page === 'inventory') renderInventory();
+    if(page === 'executive') renderExecutive();
   });
 });
 
@@ -640,6 +680,33 @@ document.getElementById('productSegmentSelect').addEventListener('change',render
 document.getElementById('productSignalSelect').addEventListener('change',renderProductTable);
 document.getElementById('productSearch').addEventListener('input',renderProductTable);
 
+const pct=(value,base)=>base?((value-base)/Math.abs(base))*100:null;
+const pctText=value=>value===null?'—':`${value>=0?'+':''}${value.toFixed(1)}%`;
+function renderFinance(){
+  const row=RAW.yearly.find(r=>r.Year===selectedYear);if(!row)return;
+  const prev=RAW.yearly.find(r=>r.Year===String(Number(selectedYear)-1));
+  const grossMargin=row.sales_amount?row.gross_profit/row.sales_amount*100:0,netMargin=row.sales_amount?row.net_profit/row.sales_amount*100:0,collection=row.sales_amount?row.payment_amount/row.sales_amount*100:0;
+  document.getElementById('finSales').textContent='฿'+fmtCompact(row.sales_amount);document.getElementById('finGross').textContent='฿'+fmtCompact(row.gross_profit);document.getElementById('finNet').textContent='฿'+fmtCompact(row.net_profit);document.getElementById('finPayment').textContent='฿'+fmtCompact(row.payment_amount);
+  document.getElementById('financeRatioTable').innerHTML=[['อัตรากำไรขั้นต้น',grossMargin.toFixed(1)+'%'],['อัตรากำไรสุทธิ',netMargin.toFixed(1)+'%'],['รับชำระต่อยอดขาย',collection.toFixed(1)+'%'],['ค่าใช้จ่ายต่อยอดขาย',row.sales_amount?(row.expense_amount/row.sales_amount*100).toFixed(1)+'%':'—'],['ช่องว่างยอดขาย–รับชำระ*','฿'+fmt(row.sales_amount-row.payment_amount)]].map(x=>`<tr><td>${x[0]}</td><td class="num">${x[1]}</td></tr>`).join('');
+  document.getElementById('financeYoyTable').innerHTML=[['ยอดขาย','sales_amount'],['กำไรขั้นต้น','gross_profit'],['กำไรสุทธิ','net_profit'],['เงินรับชำระ','payment_amount'],['ค่าใช้จ่าย','expense_amount']].map(([label,key])=>{const change=prev?pct(row[key],prev[key]):null;return `<tr><td>${label}</td><td class="num ${change!==null&&change<0?'flag-neg':''}">${pctText(change)}</td></tr>`}).join('');
+  const rows=RAW.monthly.filter(r=>r.Year===selectedYear).sort((a,b)=>a.MonthNum-b.MonthNum);document.getElementById('financeMonthlyTable').innerHTML=rows.map(r=>{const margin=r.sales_amount?r.net_profit/r.sales_amount*100:0,status=r.net_profit<0?'ขาดทุน':r.payment_amount<r.sales_amount*.8?'รับเงินต่ำ':'ปกติ',signal=r.net_profit<0?'declining':r.payment_amount<r.sales_amount*.8?'stockout':'growing';return `<tr><td>${monthNamesTh[r.MonthNum-1]}</td><td class="num">฿${fmt(r.sales_amount)}</td><td class="num">฿${fmt(r.payment_amount)}</td><td class="num">฿${fmt(r.purchase_amount)}</td><td class="num">฿${fmt(r.expense_amount)}</td><td class="num ${r.net_profit<0?'flag-neg':''}">฿${fmt(r.net_profit)}</td><td class="num ${margin<0?'flag-neg':''}">${margin.toFixed(1)}%</td><td><span class="signal signal-${signal}">${status}</span></td></tr>`}).join('');
+}
+
+function renderExpenses(){const data=window.EXPENSE_ANALYTICS?.[selectedYear],empty=!data;document.getElementById('expenseTotal').textContent=empty?'—':'฿'+fmtCompact(data.summary.value);document.getElementById('expenseTransactions').textContent=empty?'—':fmt(data.summary.transactions);document.getElementById('expenseAccounts').textContent=empty?'—':fmt(data.summary.accounts);document.getElementById('expenseAverage').textContent=empty?'—':'฿'+fmt(data.summary.avgMonth);if(empty){['expenseMonthlyTable','topExpenseTable','expenseDetailTable'].forEach(id=>document.getElementById(id).innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted)">ไม่มีข้อมูลค่าใช้จ่ายในปีที่เลือก</td></tr>');return;}
+ document.getElementById('expenseMonthlyTable').innerHTML=data.monthly.map(m=>`<tr><td>${monthNamesTh[m.month-1]}</td><td class="num">฿${fmt(m.value)}</td><td class="num ${m.deviation<0?'':'flag-neg'}">${m.deviation>=0?'+':''}${m.deviation.toFixed(1)}%</td><td class="num">${fmt(m.transactions)}</td></tr>`).join('');document.getElementById('topExpenseTable').innerHTML=data.accounts.slice(0,15).map(a=>`<tr><td>${esc(a.account)}</td><td class="num">฿${fmt(a.value)}</td><td class="num">${(a.value/data.summary.value*100).toFixed(1)}%</td></tr>`).join('');renderExpenseTable();}
+function renderExpenseTable(){const data=window.EXPENSE_ANALYTICS?.[selectedYear];if(!data)return;const metric=document.getElementById('expenseMetricSelect').value,q=document.getElementById('expenseSearch').value.trim().toLowerCase(),rows=data.accounts.filter(a=>!q||a.account.toLowerCase().includes(q)).sort((a,b)=>(Number(b[metric])||-Infinity)-(Number(a[metric])||-Infinity));document.getElementById('expenseResultCount').textContent=`${fmt(rows.length)} บัญชี`;document.getElementById('expenseDetailTable').innerHTML=rows.map(a=>`<tr><td>${esc(a.account)}</td><td class="num">฿${fmt(a.value)}</td><td class="num">${(a.value/data.summary.value*100).toFixed(1)}%</td><td class="num">${fmt(a.transactions)}</td><td class="num">฿${fmt(a.avgTransaction)}</td><td class="num">${fmt(a.activeMonths)}</td><td class="num ${a.growth!==null&&a.growth>0?'flag-neg':''}">${pctText(a.growth)}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted)">ไม่พบข้อมูล</td></tr>';}
+document.getElementById('expenseMetricSelect').addEventListener('change',renderExpenseTable);document.getElementById('expenseSearch').addEventListener('input',renderExpenseTable);
+
+function inventoryRows(){const productData=window.PRODUCT_ANALYTICS?.[selectedYear],sales=new Map((productData?.products||[]).map(p=>[p.code,p]));return (window.INVENTORY_ANALYTICS?.products||[]).map(i=>{const p=sales.get(i.code),sold=p?.qty||0,turnover=i.qty>0&&productData?sold/i.qty:null;let signal=productData?'normal':'unknown';if(i.qty<0)signal='negative';else if(productData&&i.qty>0&&!sold)signal='noSales';else if(productData&&i.qty>0&&turnover<.5)signal='slow';else if(productData&&sold>0&&i.qty<=sold/12)signal='low';return {...i,sold,turnover,signal};});}
+const inventoryLabels={negative:'ติดลบ',noSales:'ไม่มีการขาย',slow:'เคลื่อนไหวช้า',low:'ขายดี–สต็อกต่ำ',normal:'ปกติ',unknown:'ไม่มีข้อมูลยอดขาย'};
+function renderInventory(){const data=window.INVENTORY_ANALYTICS,rows=inventoryRows();document.getElementById('inventoryValue').textContent='฿'+fmtCompact(data.summary.value);document.getElementById('inventoryQty').textContent=fmt(data.summary.qty);document.getElementById('inventoryProducts').textContent=fmt(data.summary.products);document.getElementById('inventoryNegative').textContent=fmt(data.summary.negative);document.getElementById('inventoryGroupTable').innerHTML=data.groups.slice(0,15).map(g=>`<tr><td>${esc(g.group)}</td><td class="num">${fmt(g.products)}</td><td class="num">฿${fmt(g.value)}</td><td class="num ${g.negative?'flag-neg':''}">${fmt(g.negative)}</td></tr>`).join('');document.getElementById('inventorySignalTable').innerHTML=['negative','noSales','slow','low','normal','unknown'].map(key=>{const r=rows.filter(x=>x.signal===key);return `<tr><td><span class="signal signal-${key==='negative'?'declining':key==='low'?'stockout':key==='normal'?'growing':'slow'}">${inventoryLabels[key]}</span></td><td class="num">${fmt(r.length)}</td><td class="num">฿${fmt(r.reduce((s,x)=>s+x.value,0))}</td></tr>`}).join('');renderInventoryTable();}
+function renderInventoryTable(){const signal=document.getElementById('inventorySignalSelect').value,q=document.getElementById('inventorySearch').value.trim().toLowerCase(),rows=inventoryRows().filter(i=>(signal==='all'||i.signal===signal)&&(!q||`${i.product} ${i.code} ${i.group}`.toLowerCase().includes(q))).sort((a,b)=>b.value-a.value);document.getElementById('inventoryResultCount').textContent=`${fmt(rows.length)} รายการ`;document.getElementById('inventoryDetailTable').innerHTML=rows.map(i=>`<tr><td><b>${esc(i.product)}</b><br><span class="card-note">${esc(i.code)}</span></td><td>${esc(i.group)}</td><td>${inventoryLabels[i.signal]}</td><td class="num ${i.qty<0?'flag-neg':''}">${fmt(i.qty)} ${esc(i.unit)}</td><td class="num">฿${fmt(i.value)}</td><td class="num">${fmt(i.sold)}</td><td class="num">${i.turnover===null?'—':i.turnover.toFixed(2)+'×'}</td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--muted)">ไม่พบข้อมูล</td></tr>';}
+document.getElementById('inventorySignalSelect').addEventListener('change',renderInventoryTable);document.getElementById('inventorySearch').addEventListener('input',renderInventoryTable);
+
+function renderExecutive(){const row=RAW.yearly.find(r=>r.Year===selectedYear);if(!row)return;const prev=RAW.yearly.find(r=>r.Year===String(Number(selectedYear)-1)),cust=window.CUSTOMER_ANALYTICS?.[selectedYear],prevCust=window.CUSTOMER_ANALYTICS?.[String(Number(selectedYear)-1)],prod=window.PRODUCT_ANALYTICS?.[selectedYear],exp=window.EXPENSE_ANALYTICS?.[selectedYear],inv=window.INVENTORY_ANALYTICS;const lost=prevCust?prevCust.customers.filter(c=>!new Set(cust?.customers.map(x=>x.code)||[]).has(c.code)).length:0,grossMargin=row.sales_amount?row.gross_profit/row.sales_amount*100:0,netMargin=row.sales_amount?row.net_profit/row.sales_amount*100:0,collection=row.sales_amount?row.payment_amount/row.sales_amount*100:0,declining=prod?.products.filter(p=>p.signal==='declining').length||0,abnormal=exp?.monthly.filter(m=>m.deviation>30).length||0;
+ document.getElementById('executiveTitle').textContent=`Executive Insights ปี ${selectedYear}`;const insights=[{title:'การเติบโตยอดขาย',value:pctText(prev?pct(row.sales_amount,prev.sales_amount):null),note:prev?'เทียบกับปีก่อน':'ไม่มีฐานเปรียบเทียบ',bad:prev&&row.sales_amount<prev.sales_amount},{title:'อัตรากำไรสุทธิ',value:netMargin.toFixed(1)+'%',note:`กำไรขั้นต้น ${grossMargin.toFixed(1)}%`,bad:netMargin<0},{title:'ประสิทธิภาพรับเงิน',value:collection.toFixed(1)+'%',note:'เงินรับชำระต่อยอดขาย',bad:collection<80},{title:'ลูกค้าที่หยุดซื้อ',value:fmt(lost)+' ราย',note:'ซื้อปีก่อนแต่ไม่ซื้อปีนี้',bad:lost>0}];document.getElementById('executiveInsights').innerHTML=insights.map(i=>`<div class="customer-kpi"><span>${i.title}</span><strong class="${i.bad?'flag-neg':''}">${i.value}</strong><p class="behavior-note">${i.note}</p></div>`).join('');
+ const metrics=[['ยอดขาย',row.sales_amount,prev?.sales_amount],['กำไรขั้นต้น',row.gross_profit,prev?.gross_profit],['กำไรสุทธิ',row.net_profit,prev?.net_profit],['เงินรับชำระ',row.payment_amount,prev?.payment_amount],['ค่าใช้จ่าย',row.expense_amount,prev?.expense_amount]];document.getElementById('executiveKpiTable').innerHTML=metrics.map(([l,v,p])=>{const c=p===undefined?null:pct(v,p);return `<tr><td>${l}</td><td class="num">฿${fmt(v)}</td><td class="num ${c!==null&&c<0?'flag-neg':''}">${pctText(c)}</td></tr>`}).join('');const watch=[['สต็อกติดลบ',`${fmt(inv.summary.negative)} รายการ`],['สินค้าชะลอตัว',`${fmt(declining)} รายการ`],['เดือนค่าใช้จ่ายสูงผิดปกติ',`${fmt(abnormal)} เดือน`],['ลูกค้าที่หยุดซื้อ',`${fmt(lost)} ราย`]];document.getElementById('executiveWatchTable').innerHTML=watch.map(x=>`<tr><td>${x[0]}</td><td class="num flag-neg">${x[1]}</td></tr>`).join('');}
+
 // ---------------- Main chart ----------------
 let mainChart;
 function renderMain(){
@@ -779,6 +846,10 @@ renderDetail();
 renderCustomers();
 renderPurchases();
 renderProducts();
+renderFinance();
+renderExpenses();
+renderInventory();
+renderExecutive();
 </script>
 </body>
 </html>

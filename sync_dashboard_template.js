@@ -1,0 +1,10 @@
+const fs=require('fs');
+const index=fs.readFileSync('index.html','utf8');
+const marker='const RAW = ',start=index.indexOf(marker),valueStart=start+marker.length;
+const fmtIndex=index.indexOf('const fmt',valueStart),valueEnd=index.lastIndexOf(';',fmtIndex);
+if(start<0||fmtIndex<0||valueEnd<valueStart)throw new Error('Dashboard template markers not found');
+let generator=fs.readFileSync('generate_dashboard.py','utf8');
+generator=generator.replace(/^TEMPLATE_BEFORE_B64 = ".*"$/m,`TEMPLATE_BEFORE_B64 = "${Buffer.from(index.slice(0,valueStart)).toString('base64')}"`);
+generator=generator.replace(/^TEMPLATE_AFTER_B64 = ".*"$/m,`TEMPLATE_AFTER_B64 = "${Buffer.from(index.slice(valueEnd)).toString('base64')}"`);
+fs.writeFileSync('generate_dashboard.py',generator,'utf8');
+console.log('Dashboard generator template synchronized.');
