@@ -32,7 +32,7 @@ for (const [year, yearMap] of [...byYear.entries()].sort()) {
   const rows = [...yearMap.entries()].map(([code, item]) => {
     const info = master.get(code) || {name:code, province:'ไม่ระบุจังหวัด'};
     return {code, name:info.name, province:info.province, sales:item.sales, orders:item.orders,
-      activeMonths:item.months.size, avgOrder:item.orders ? item.sales/item.orders : 0,
+      activeMonths:item.months.size, months:[...item.months].sort((a,b)=>a-b), avgOrder:item.orders ? item.sales/item.orders : 0,
       lastMonth:item.lastMonth, firstYear:firstYear.get(code), lifecycle:firstYear.get(code)===year?'new':'returning'};
   }).sort((a,b)=>b.sales-a.sales);
 
