@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard ภาพรวมธุรกิจ</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="customer_analytics.js"></script>
+<script src="purchase_analytics.js"></script>
+<script src="product_analytics.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
@@ -115,6 +118,10 @@ select{
 
 /* ---------- Layout ---------- */
 .wrap{max-width:1280px; margin:0 auto; padding:20px 32px 60px;}
+.page-nav{max-width:1280px; margin:0 auto; padding:18px 32px 0; display:flex; gap:8px;}
+.page-nav button{border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:8px; padding:9px 18px; font-family:'IBM Plex Sans Thai',sans-serif; font-size:13px; font-weight:600; cursor:pointer;}
+.page-nav button.active{background:var(--navy); border-color:var(--navy); color:#fff;}
+.page-view[hidden]{display:none;}
 .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
 .grid-3{display:grid; grid-template-columns:2fr 1fr; gap:18px;}
 @media (max-width:860px){ .grid-2, .grid-3{grid-template-columns:1fr;} }
@@ -128,6 +135,33 @@ select{
 .card-note{font-size:11.5px; color:var(--muted);}
 .chart-box{position:relative; height:280px;}
 .chart-box.tall{height:340px;}
+.table-scroll{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.metric-detail-table{min-width:780px;}
+.metric-detail-table th{background:#F7F8FA; padding:10px 12px;}
+.metric-detail-table td{padding:11px 12px; vertical-align:top;}
+.metric-detail-table tbody tr:hover{background:#FAFBFC;}
+.metric-detail-table .metric-value{font-family:'IBM Plex Mono',monospace; font-weight:600; text-align:right; white-space:nowrap;}
+.detail-summary{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:9px; overflow:hidden; margin-bottom:18px;}
+.detail-summary > div{background:#F8F9FA; padding:14px 16px;}
+.detail-summary span{display:block; color:var(--muted); font-size:11px; margin-bottom:4px;}
+.detail-summary strong{font-family:'IBM Plex Mono',monospace; font-size:18px;}
+.total-row td{font-weight:700; background:#F7F8FA; border-top:2px solid var(--line);}
+.customer-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;}
+.customer-kpi{background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px;}
+.customer-kpi span{display:block; font-size:11px; color:var(--muted); margin-bottom:5px;}
+.customer-kpi strong{font-family:'IBM Plex Mono',monospace; font-size:20px;}
+.segment-badge{display:inline-flex; width:26px; height:22px; align-items:center; justify-content:center; border-radius:5px; font-family:'IBM Plex Mono',monospace; font-weight:700;}
+.segment-A{background:#DDF3E7;color:var(--green)} .segment-B{background:#FFE8D7;color:#C4520E} .segment-C{background:#E8EDF1;color:var(--steel)}
+.customer-tools{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px;}
+.customer-tools input{font-family:'IBM Plex Sans Thai',sans-serif; font-size:13px; padding:9px 12px; border:1px solid var(--line); border-radius:8px; min-width:240px;}
+.behavior-note{font-size:12px; color:var(--muted); line-height:1.6; margin:10px 0 0;}
+.share-bar{height:6px; background:#E8EDF1; border-radius:4px; overflow:hidden; min-width:90px; margin-top:4px;}
+.share-bar i{display:block; height:100%; background:var(--orange); border-radius:4px;}
+.signal{display:inline-block; border-radius:12px; padding:3px 8px; font-size:10.5px; white-space:nowrap;}
+.signal-growing{background:#DDF3E7;color:var(--green)} .signal-declining{background:#FBE2E0;color:var(--red)}
+.signal-stockout{background:#FFE1CC;color:#B74708} .signal-slow{background:#E8EDF1;color:var(--steel)} .signal-stable{background:#F1F3F5;color:var(--muted)}
+@media (max-width:600px){.detail-summary{grid-template-columns:1fr;} .controls,.wrap,.page-nav{padding-left:16px;padding-right:16px;}}
+@media (max-width:860px){.customer-kpis{grid-template-columns:repeat(2,1fr);}}
 
 table{width:100%; border-collapse:collapse; font-size:13px;}
 th{
@@ -168,8 +202,16 @@ tr:last-child td{border-bottom:none;}
   <div class="kpi-strip" id="kpiStrip"></div>
 </div>
 
+<nav class="page-nav" aria-label="เมนูหน้าแดชบอร์ด">
+  <button class="active" data-page="overview">ภาพรวม</button>
+  <button data-page="detail">รายละเอียดตัวชี้วัด</button>
+  <button data-page="customers">พฤติกรรมลูกค้า</button>
+  <button data-page="purchases">วิเคราะห์ยอดซื้อ</button>
+  <button data-page="products">วิเคราะห์สินค้า</button>
+</nav>
+
 <div class="controls">
-  <span class="control-label">มุมมอง</span>
+  <span class="control-label" id="modeLabel">มุมมอง</span>
   <div class="seg" id="modeSeg">
     <button data-mode="monthly" class="active">รายเดือน</button>
     <button data-mode="yearly">รายปี</button>
@@ -179,7 +221,7 @@ tr:last-child td{border-bottom:none;}
   <span class="control-label" id="yearLabel">ปี</span>
   <select id="yearSelect"></select>
 
-  <span class="control-label">ตัวชี้วัด</span>
+  <span class="control-label" id="metricLabel">ตัวชี้วัด</span>
   <select id="metricSelect">
     <option value="sales_amount">ยอดขาย</option>
     <option value="purchase_amount">ยอดซื้อ</option>
@@ -190,7 +232,7 @@ tr:last-child td{border-bottom:none;}
   </select>
 </div>
 
-<div class="wrap">
+<div class="wrap page-view" id="overviewPage">
 
   <div class="card">
     <div class="card-head">
@@ -237,6 +279,125 @@ tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
+</div>
+
+<div class="wrap page-view" id="detailPage" hidden>
+  <div class="card">
+    <div class="card-head">
+      <h3 class="card-title" id="detailTitle">รายละเอียดตัวชี้วัด</h3>
+      <span class="card-note" id="detailNote"></span>
+    </div>
+    <div class="detail-summary">
+      <div><span>รวมทั้งปี</span><strong id="detailTotal">—</strong></div>
+      <div><span>เฉลี่ยต่อเดือน</span><strong id="detailAverage">—</strong></div>
+      <div><span>จำนวนเดือนที่มีข้อมูล</span><strong id="detailMonthCount">—</strong></div>
+    </div>
+    <div class="table-scroll">
+      <table class="metric-detail-table">
+        <thead><tr><th>เดือน</th><th style="text-align:right">มูลค่า (บาท)</th><th style="text-align:right">จำนวนรายการ</th><th style="text-align:right">เปลี่ยนแปลงจากเดือนก่อน</th><th style="text-align:right">ยอดสะสม</th></tr></thead>
+        <tbody id="metricDetailTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="wrap page-view" id="customersPage" hidden>
+  <div class="customer-kpis">
+    <div class="customer-kpi"><span>ลูกค้าที่ซื้อในปีนี้</span><strong id="customerCount">—</strong></div>
+    <div class="customer-kpi"><span>ยอดขายจากลูกค้า</span><strong id="customerSales">—</strong></div>
+    <div class="customer-kpi"><span>จำนวนออเดอร์</span><strong id="customerOrders">—</strong></div>
+    <div class="customer-kpi"><span>ยอดเฉลี่ยต่อออเดอร์</span><strong id="customerAvgOrder">—</strong></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3 class="card-title">กลุ่มมูลค่าลูกค้า (ABC)</h3><span class="card-note">แบ่งตามสัดส่วนยอดขายสะสม 80% / 15% / 5%</span></div>
+      <table><thead><tr><th>กลุ่ม</th><th style="text-align:right">ลูกค้า</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">สัดส่วน</th></tr></thead><tbody id="segmentTable"></tbody></table>
+      <p class="behavior-note">กลุ่ม A คือฐานรายได้หลักที่ควรรักษาความสัมพันธ์, กลุ่ม B มีโอกาสพัฒนาเป็นลูกค้าหลัก และกลุ่ม C เหมาะกับแคมเปญกระตุ้นการซื้อซ้ำ</p>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3 class="card-title">วงจรชีวิตลูกค้า</h3><span class="card-note">ใหม่ / ซื้อซ้ำ / หยุดซื้อ</span></div>
+      <table><thead><tr><th>พฤติกรรม</th><th style="text-align:right">ลูกค้า</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">ออเดอร์</th></tr></thead><tbody id="lifecycleTable"></tbody></table>
+      <p class="behavior-note">“หยุดซื้อ” หมายถึงลูกค้าที่ซื้อในปีก่อนหน้า แต่ไม่พบรายการซื้อในปีที่เลือก ช่วยระบุกลุ่มที่ควรติดตามกลับมา</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 class="card-title" id="customerTableTitle">รายละเอียดลูกค้า</h3><span class="card-note" id="customerResultCount"></span></div>
+    <div class="customer-tools">
+      <span class="control-label">เรียงตาม</span>
+      <select id="customerMetricSelect"><option value="sales">ยอดขาย</option><option value="orders">จำนวนออเดอร์</option><option value="avgOrder">ยอดเฉลี่ยต่อออเดอร์</option><option value="activeMonths">ความถี่ในการซื้อ</option></select>
+      <select id="customerSegmentSelect"><option value="all">ทุกกลุ่ม</option><option value="A">กลุ่ม A</option><option value="B">กลุ่ม B</option><option value="C">กลุ่ม C</option><option value="new">ลูกค้าใหม่</option><option value="returning">ลูกค้าซื้อซ้ำ</option></select>
+      <input id="customerSearch" type="search" placeholder="ค้นหาชื่อลูกค้า จังหวัด หรือรหัสลูกค้า">
+    </div>
+    <div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>กลุ่ม</th><th>ลูกค้า</th><th>จังหวัด</th><th>พฤติกรรม</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">ออเดอร์</th><th style="text-align:right">เฉลี่ย/ออเดอร์</th><th style="text-align:right">เดือนที่ซื้อ</th><th>ซื้อล่าสุด</th></tr></thead><tbody id="customerTable"></tbody></table></div>
+  </div>
+</div>
+
+<div class="wrap page-view" id="purchasesPage" hidden>
+  <div class="customer-kpis">
+    <div class="customer-kpi"><span>ยอดซื้อรวม</span><strong id="purchaseTotal">—</strong></div>
+    <div class="customer-kpi"><span>เอกสารซื้อ</span><strong id="purchaseDocuments">—</strong></div>
+    <div class="customer-kpi"><span>ผู้ขายที่มีรายการ</span><strong id="purchaseSuppliers">—</strong></div>
+    <div class="customer-kpi"><span>ยอดเฉลี่ยต่อเอกสาร</span><strong id="purchaseAverage">—</strong></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card"><div class="card-head"><h3 class="card-title">แนวโน้มยอดซื้อรายเดือน</h3><span class="card-note">มูลค่า เอกสาร และจำนวนผู้ขาย</span></div>
+      <div class="table-scroll"><table><thead><tr><th>เดือน</th><th style="text-align:right">ยอดซื้อ</th><th style="text-align:right">เทียบเดือนก่อน</th><th style="text-align:right">เอกสาร</th><th style="text-align:right">ผู้ขาย</th></tr></thead><tbody id="purchaseMonthlyTable"></tbody></table></div>
+    </div>
+    <div class="card"><div class="card-head"><h3 class="card-title">รูปแบบและเงื่อนไขการซื้อ</h3><span class="card-note">ช่วยดูโครงสร้างเครดิตและกระแสเงินสด</span></div>
+      <h4 class="card-note">ประเภทการซื้อ</h4><table><tbody id="purchaseTypeTable"></tbody></table>
+      <h4 class="card-note" style="margin-top:18px">ระยะเวลาเครดิต</h4><table><tbody id="purchaseTermTable"></tbody></table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card"><div class="card-head"><h3 class="card-title">สินค้าที่จัดซื้อสูงสุด</h3><span class="card-note">จัดอันดับตามมูลค่า</span></div>
+      <div class="table-scroll"><table><thead><tr><th>สินค้า</th><th style="text-align:right">มูลค่า</th><th style="text-align:right">จำนวน</th><th style="text-align:right">เอกสาร</th></tr></thead><tbody id="purchaseProductTable"></tbody></table></div>
+    </div>
+    <div class="card"><div class="card-head"><h3 class="card-title">ความกระจุกตัวของผู้ขาย</h3><span class="card-note">ABC ตามยอดซื้อสะสม 80% / 15% / 5%</span></div>
+      <table><thead><tr><th>กลุ่ม</th><th style="text-align:right">ผู้ขาย</th><th style="text-align:right">ยอดซื้อ</th><th style="text-align:right">สัดส่วน</th></tr></thead><tbody id="purchaseSegmentTable"></tbody></table>
+      <p class="behavior-note">กลุ่ม A มีผลต่อยอดซื้อสูงสุด จึงควรติดตามความเสี่ยงด้านราคา เครดิต และการพึ่งพาผู้ขายรายหลักเป็นพิเศษ</p>
+    </div>
+  </div>
+
+  <div class="card"><div class="card-head"><h3 class="card-title" id="supplierTableTitle">รายละเอียดผู้ขาย</h3><span class="card-note" id="supplierResultCount"></span></div>
+    <div class="customer-tools"><span class="control-label">เรียงตาม</span><select id="supplierMetricSelect"><option value="value">ยอดซื้อ</option><option value="documents">จำนวนเอกสาร</option><option value="avgDocument">ยอดเฉลี่ยต่อเอกสาร</option><option value="activeMonths">เดือนที่มีรายการ</option><option value="avgPayterm">เครดิตเฉลี่ย</option></select>
+      <select id="supplierSegmentSelect"><option value="all">ทุกกลุ่ม</option><option value="A">กลุ่ม A</option><option value="B">กลุ่ม B</option><option value="C">กลุ่ม C</option></select><input id="supplierSearch" type="search" placeholder="ค้นหารหัสผู้ขาย"></div>
+    <div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>กลุ่ม</th><th>ผู้ขาย</th><th style="text-align:right">ยอดซื้อ</th><th style="text-align:right">สัดส่วน</th><th style="text-align:right">เอกสาร</th><th style="text-align:right">เฉลี่ย/เอกสาร</th><th style="text-align:right">เดือนที่ซื้อ</th><th style="text-align:right">เครดิตเฉลี่ย</th><th>ล่าสุด</th></tr></thead><tbody id="supplierTable"></tbody></table></div>
+  </div>
+</div>
+
+<div class="wrap page-view" id="productsPage" hidden>
+  <div class="customer-kpis">
+    <div class="customer-kpi"><span>ยอดขายสินค้า</span><strong id="productSales">—</strong></div>
+    <div class="customer-kpi"><span>จำนวนที่ขาย</span><strong id="productQty">—</strong></div>
+    <div class="customer-kpi"><span>สินค้าที่มีการขาย</span><strong id="productCount">—</strong></div>
+    <div class="customer-kpi"><span>ยอดเฉลี่ยต่อสินค้า</span><strong id="productAverage">—</strong></div>
+  </div>
+  <div id="productEmpty" class="card" hidden><p style="text-align:center;color:var(--muted)">ไม่มีข้อมูลรายละเอียดสินค้าสำหรับปีนี้ ข้อมูลรายสินค้าเริ่มตั้งแต่ปี 2023</p></div>
+  <div id="productContent">
+    <div class="grid-2">
+      <div class="card"><div class="card-head"><h3 class="card-title">สินค้าสร้างยอดขายสูงสุด</h3><span class="card-note">15 อันดับตามมูลค่า</span></div>
+        <div class="table-scroll"><table><thead><tr><th>สินค้า</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">จำนวน</th><th style="text-align:right">ลูกค้า</th></tr></thead><tbody id="topProductTable"></tbody></table></div>
+      </div>
+      <div class="card"><div class="card-head"><h3 class="card-title">โครงสร้างสินค้า A/B/C</h3><span class="card-note">ตามยอดขายสะสม 80% / 15% / 5%</span></div>
+        <table><thead><tr><th>กลุ่ม</th><th style="text-align:right">สินค้า</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">สัดส่วน</th></tr></thead><tbody id="productSegmentTable"></tbody></table>
+        <p class="behavior-note">กลุ่ม A คือสินค้าหลักที่สร้างรายได้ ส่วนกลุ่ม C ควรตรวจสอบว่ายังจำเป็นต้องถือสต็อกครบทุกตัวหรือไม่</p>
+      </div>
+    </div>
+    <div class="card"><div class="card-head"><h3 class="card-title">สัญญาณที่ควรติดตาม</h3><span class="card-note">เปรียบเทียบยอดขายกับปีก่อนและสต็อกปัจจุบัน</span></div>
+      <div class="grid-2"><table><thead><tr><th>สัญญาณ</th><th style="text-align:right">สินค้า</th><th style="text-align:right">ยอดขาย</th></tr></thead><tbody id="productSignalTable"></tbody></table>
+      <div><p class="behavior-note"><b>เติบโต:</b> ยอดขายเพิ่มอย่างน้อย 20% · <b>ชะลอตัว:</b> ลดลงอย่างน้อย 20% · <b>เสี่ยงขาด:</b> มีการขายแต่สต็อกไม่เหลือ · <b>เคลื่อนไหวช้า:</b> จำนวนขายต่ำกว่าครึ่งหนึ่งของสต็อกปัจจุบัน</p></div></div>
+    </div>
+    <div class="card"><div class="card-head"><h3 class="card-title" id="productTableTitle">รายละเอียดสินค้า</h3><span class="card-note" id="productResultCount"></span></div>
+      <div class="customer-tools"><span class="control-label">เรียงตาม</span><select id="productMetricSelect"><option value="value">ยอดขาย</option><option value="qty">จำนวนขาย</option><option value="customers">จำนวนลูกค้า</option><option value="documents">จำนวนเอกสาร</option><option value="growth">อัตราเติบโต</option><option value="stockValue">มูลค่าสต็อก</option><option value="turnover">อัตราหมุนเวียน</option></select>
+        <select id="productSegmentSelect"><option value="all">ทุกกลุ่ม</option><option value="A">กลุ่ม A</option><option value="B">กลุ่ม B</option><option value="C">กลุ่ม C</option></select>
+        <select id="productSignalSelect"><option value="all">ทุกสัญญาณ</option><option value="growing">เติบโต</option><option value="declining">ชะลอตัว</option><option value="stockout">เสี่ยงขาด</option><option value="slow">เคลื่อนไหวช้า</option><option value="stable">ปกติ</option></select><input id="productSearch" type="search" placeholder="ค้นหาชื่อหรือรหัสสินค้า"></div>
+      <div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>กลุ่ม</th><th>สินค้า</th><th>สัญญาณ</th><th style="text-align:right">ยอดขาย</th><th style="text-align:right">เติบโต</th><th style="text-align:right">จำนวนขาย</th><th style="text-align:right">ลูกค้า</th><th style="text-align:right">เอกสาร</th><th style="text-align:right">ราคาเฉลี่ย</th><th style="text-align:right">สต็อก</th><th style="text-align:right">มูลค่าสต็อก</th><th style="text-align:right">หมุนเวียน</th></tr></thead><tbody id="productDetailTable"></tbody></table></div>
+    </div>
+  </div>
 </div>
 
 <div class="footer">
@@ -297,8 +458,31 @@ const yearSelect = document.getElementById('yearSelect');
 yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
 yearSelect.value = selectedYear;
 
-document.getElementById('metricSelect').addEventListener('change', e=>{ metric = e.target.value; renderMain(); });
-yearSelect.addEventListener('change', e=>{ selectedYear = e.target.value; renderMain(); });
+document.getElementById('metricSelect').addEventListener('change', e=>{ metric = e.target.value; renderMain(); renderDetail(); });
+yearSelect.addEventListener('change', e=>{ selectedYear = e.target.value; renderMain(); renderDetail(); renderCustomers(); renderPurchases(); renderProducts(); });
+
+document.querySelectorAll('.page-nav button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const page = btn.dataset.page;
+    const isOverview = page === 'overview';
+    document.querySelectorAll('.page-nav button').forEach(b=>b.classList.toggle('active', b===btn));
+    document.getElementById('overviewPage').hidden = !isOverview;
+    document.getElementById('detailPage').hidden = page !== 'detail';
+    document.getElementById('customersPage').hidden = page !== 'customers';
+    document.getElementById('purchasesPage').hidden = page !== 'purchases';
+    document.getElementById('productsPage').hidden = page !== 'products';
+    document.getElementById('modeLabel').style.display = isOverview ? 'inline' : 'none';
+    document.getElementById('modeSeg').style.display = isOverview ? 'flex' : 'none';
+    document.getElementById('metricLabel').style.display = ['customers','purchases','products'].includes(page) ? 'none' : 'inline';
+    document.getElementById('metricSelect').style.display = ['customers','purchases','products'].includes(page) ? 'none' : 'inline-block';
+    document.getElementById('yearLabel').style.display = !isOverview || mode!=='yearly' ? 'inline' : 'none';
+    yearSelect.style.display = !isOverview || mode!=='yearly' ? 'inline-block' : 'none';
+    if(page === 'detail') renderDetail();
+    if(page === 'customers') renderCustomers();
+    if(page === 'purchases') renderPurchases();
+    if(page === 'products') renderProducts();
+  });
+});
 
 document.querySelectorAll('#modeSeg button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -310,6 +494,151 @@ document.querySelectorAll('#modeSeg button').forEach(btn=>{
     renderMain();
   });
 });
+
+function renderDetail(){
+  const rows = RAW.monthly.filter(r=>r.Year===selectedYear).sort((a,b)=>a.MonthNum-b.MonthNum);
+  const countKey = {
+    sales_amount:'sales_count', purchase_amount:'purchase_count',
+    expense_amount:'expense_count', payment_amount:'payment_count'
+  }[metric];
+  const total = rows.reduce((sum,r)=>sum+(Number(r[metric])||0),0);
+  let cumulative = 0;
+
+  document.getElementById('detailTitle').textContent = `รายละเอียด${metricLabels[metric]} ปี ${selectedYear}`;
+  document.getElementById('detailNote').textContent = 'แสดงข้อมูลแยกรายเดือนตามตัวชี้วัดและปีที่เลือก';
+  document.getElementById('detailTotal').textContent = `฿${fmt(total)}`;
+  document.getElementById('detailAverage').textContent = rows.length ? `฿${fmt(total/rows.length)}` : '—';
+  document.getElementById('detailMonthCount').textContent = `${rows.length} เดือน`;
+
+  const detailRows = rows.map((row,index)=>{
+    const value = Number(row[metric])||0;
+    const previous = index ? Number(rows[index-1][metric])||0 : null;
+    const change = previous === null || previous === 0 ? null : ((value-previous)/Math.abs(previous))*100;
+    cumulative += value;
+    return `<tr>
+      <td>${monthNamesTh[row.MonthNum-1]} ${selectedYear}</td>
+      <td class="metric-value ${value<0?'flag-neg':''}">${fmt(value)}</td>
+      <td class="num">${countKey ? fmt(row[countKey]||0) : '—'}</td>
+      <td class="num ${change!==null&&change<0?'flag-neg':''}">${change===null?'—':`${change>=0?'+':''}${change.toFixed(1)}%`}</td>
+      <td class="metric-value ${cumulative<0?'flag-neg':''}">${fmt(cumulative)}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('metricDetailTable').innerHTML = detailRows + (rows.length ? `
+    <tr class="total-row"><td>รวมปี ${selectedYear}</td><td class="num ${total<0?'flag-neg':''}">${fmt(total)}</td><td class="num">${countKey?fmt(rows.reduce((sum,r)=>sum+(Number(r[countKey])||0),0)):'—'}</td><td></td><td class="num ${total<0?'flag-neg':''}">${fmt(total)}</td></tr>` :
+    '<tr><td colspan="5" style="text-align:center;color:var(--muted)">ไม่มีข้อมูลในปีที่เลือก</td></tr>');
+}
+
+const esc = value => String(value ?? '').replace(/[&<>"']/g, char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const lifecycleLabels = {new:'ลูกค้าใหม่', returning:'ลูกค้าซื้อซ้ำ', lost:'หยุดซื้อ'};
+
+function renderCustomers(){
+  const data = window.CUSTOMER_ANALYTICS?.[selectedYear];
+  if(!data) return;
+  const summary = data.summary;
+  const previousYear = String(Number(selectedYear)-1);
+  const previousCustomers = window.CUSTOMER_ANALYTICS?.[previousYear]?.customers || [];
+  const activeCodes = new Set(data.customers.map(c=>c.code));
+  const lostCustomers = previousCustomers.filter(c=>!activeCodes.has(c.code));
+
+  document.getElementById('customerCount').textContent = fmt(summary.customers);
+  document.getElementById('customerSales').textContent = '฿'+fmtCompact(summary.sales);
+  document.getElementById('customerOrders').textContent = fmt(summary.orders);
+  document.getElementById('customerAvgOrder').textContent = summary.orders ? '฿'+fmt(summary.sales/summary.orders) : '—';
+
+  document.getElementById('segmentTable').innerHTML = data.segments.map(s=>`<tr>
+    <td><span class="segment-badge segment-${s.key}">${s.key}</span></td><td class="num">${fmt(s.customers)}</td>
+    <td class="num">฿${fmt(s.sales)}</td><td class="num">${summary.sales ? (s.sales/summary.sales*100).toFixed(1) : '0.0'}%</td></tr>`).join('');
+
+  const lifecycle = [...data.lifecycle, {key:'lost',customers:lostCustomers.length,sales:0,orders:0}];
+  document.getElementById('lifecycleTable').innerHTML = lifecycle.map(s=>`<tr><td>${lifecycleLabels[s.key]}</td>
+    <td class="num">${fmt(s.customers)}</td><td class="num">${s.key==='lost'?'—':'฿'+fmt(s.sales)}</td><td class="num">${s.key==='lost'?'—':fmt(s.orders)}</td></tr>`).join('');
+  renderCustomerTable();
+}
+
+function renderCustomerTable(){
+  const data = window.CUSTOMER_ANALYTICS?.[selectedYear];
+  if(!data) return;
+  const sortKey = document.getElementById('customerMetricSelect').value;
+  const segment = document.getElementById('customerSegmentSelect').value;
+  const query = document.getElementById('customerSearch').value.trim().toLowerCase();
+  const rows = data.customers.filter(c=>{
+    const groupMatch = segment==='all' || c.segment===segment || c.lifecycle===segment;
+    const textMatch = !query || `${c.name} ${c.code} ${c.province}`.toLowerCase().includes(query);
+    return groupMatch && textMatch;
+  }).sort((a,b)=>(Number(b[sortKey])||0)-(Number(a[sortKey])||0));
+
+  document.getElementById('customerTableTitle').textContent = `รายละเอียดลูกค้า ปี ${selectedYear}`;
+  document.getElementById('customerResultCount').textContent = `${fmt(rows.length)} ราย`;
+  document.getElementById('customerTable').innerHTML = rows.map(c=>`<tr>
+    <td><span class="segment-badge segment-${c.segment}">${c.segment}</span></td>
+    <td><b>${esc(c.name)}</b><br><span class="card-note">${esc(c.code)}</span></td><td>${esc(c.province)}</td>
+    <td>${lifecycleLabels[c.lifecycle]}</td><td class="num">฿${fmt(c.sales)}</td><td class="num">${fmt(c.orders)}</td>
+    <td class="num">฿${fmt(c.avgOrder)}</td><td class="num">${fmt(c.activeMonths)}</td><td>${monthNamesTh[c.lastMonth-1]} ${selectedYear}</td>
+  </tr>`).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">ไม่พบลูกค้าตามเงื่อนไข</td></tr>';
+}
+
+document.getElementById('customerMetricSelect').addEventListener('change', renderCustomerTable);
+document.getElementById('customerSegmentSelect').addEventListener('change', renderCustomerTable);
+document.getElementById('customerSearch').addEventListener('input', renderCustomerTable);
+
+function renderPurchases(){
+  const data=window.PURCHASE_ANALYTICS?.[selectedYear];
+  const empty=!data;
+  document.getElementById('purchaseTotal').textContent=empty?'—':'฿'+fmtCompact(data.summary.value);
+  document.getElementById('purchaseDocuments').textContent=empty?'—':fmt(data.summary.documents);
+  document.getElementById('purchaseSuppliers').textContent=empty?'—':fmt(data.summary.suppliers);
+  document.getElementById('purchaseAverage').textContent=empty?'—':'฿'+fmt(data.summary.avgDocument);
+  if(empty){['purchaseMonthlyTable','purchaseTypeTable','purchaseTermTable','purchaseProductTable','purchaseSegmentTable','supplierTable'].forEach(id=>document.getElementById(id).innerHTML='<tr><td colspan="9" style="text-align:center;color:var(--muted)">ไม่มีข้อมูลยอดซื้อในปีที่เลือก</td></tr>');return;}
+
+  document.getElementById('purchaseMonthlyTable').innerHTML=data.monthly.map((m,i)=>{
+    const prev=i?data.monthly[i-1].value:null,change=prev?((m.value-prev)/Math.abs(prev))*100:null;
+    return `<tr><td>${monthNamesTh[m.month-1]}</td><td class="num">฿${fmt(m.value)}</td><td class="num ${change!==null&&change<0?'flag-neg':''}">${change===null?'—':`${change>=0?'+':''}${change.toFixed(1)}%`}</td><td class="num">${fmt(m.documents)}</td><td class="num">${fmt(m.suppliers)}</td></tr>`;
+  }).join('');
+  const shareRows=(rows)=>rows.map(r=>{const share=data.summary.value?r.value/data.summary.value*100:0;return `<tr><td>${esc(r.key)}</td><td class="num">฿${fmt(r.value)}<div class="share-bar"><i style="width:${Math.min(100,Math.max(0,share))}%"></i></div></td><td class="num">${share.toFixed(1)}%</td></tr>`}).join('');
+  document.getElementById('purchaseTypeTable').innerHTML=shareRows(data.types);
+  document.getElementById('purchaseTermTable').innerHTML=shareRows(data.terms);
+  document.getElementById('purchaseProductTable').innerHTML=data.products.slice(0,15).map(p=>`<tr><td>${esc(p.product)}</td><td class="num">฿${fmt(p.value)}</td><td class="num">${fmt(p.qty)}</td><td class="num">${fmt(p.documents)}</td></tr>`).join('');
+  document.getElementById('purchaseSegmentTable').innerHTML=['A','B','C'].map(key=>{const rows=data.suppliers.filter(s=>s.segment===key),value=rows.reduce((sum,s)=>sum+s.value,0),share=data.summary.value?value/data.summary.value*100:0;return `<tr><td><span class="segment-badge segment-${key}">${key}</span></td><td class="num">${fmt(rows.length)}</td><td class="num">฿${fmt(value)}</td><td class="num">${share.toFixed(1)}%</td></tr>`}).join('');
+  renderSupplierTable();
+}
+
+function renderSupplierTable(){
+  const data=window.PURCHASE_ANALYTICS?.[selectedYear];if(!data)return;
+  const sortKey=document.getElementById('supplierMetricSelect').value,segment=document.getElementById('supplierSegmentSelect').value,query=document.getElementById('supplierSearch').value.trim().toLowerCase();
+  const rows=data.suppliers.filter(s=>(segment==='all'||s.segment===segment)&&(!query||s.supplier.toLowerCase().includes(query))).sort((a,b)=>(Number(b[sortKey])||0)-(Number(a[sortKey])||0));
+  document.getElementById('supplierTableTitle').textContent=`รายละเอียดผู้ขาย ปี ${selectedYear}`;document.getElementById('supplierResultCount').textContent=`${fmt(rows.length)} ราย`;
+  document.getElementById('supplierTable').innerHTML=rows.map(s=>{const share=data.summary.value?s.value/data.summary.value*100:0;return `<tr><td><span class="segment-badge segment-${s.segment}">${s.segment}</span></td><td><b>${esc(s.supplier)}</b></td><td class="num">฿${fmt(s.value)}</td><td class="num">${share.toFixed(2)}%</td><td class="num">${fmt(s.documents)}</td><td class="num">฿${fmt(s.avgDocument)}</td><td class="num">${fmt(s.activeMonths)}</td><td class="num">${s.avgPayterm.toFixed(0)} วัน</td><td>${monthNamesTh[s.lastMonth-1]} ${selectedYear}</td></tr>`}).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--muted)">ไม่พบผู้ขายตามเงื่อนไข</td></tr>';
+}
+document.getElementById('supplierMetricSelect').addEventListener('change',renderSupplierTable);
+document.getElementById('supplierSegmentSelect').addEventListener('change',renderSupplierTable);
+document.getElementById('supplierSearch').addEventListener('input',renderSupplierTable);
+
+const productSignalLabels={growing:'เติบโต',declining:'ชะลอตัว',stockout:'เสี่ยงขาด',slow:'เคลื่อนไหวช้า',stable:'ปกติ'};
+function renderProducts(){
+  const data=window.PRODUCT_ANALYTICS?.[selectedYear],empty=!data;
+  document.getElementById('productEmpty').hidden=!empty;document.getElementById('productContent').hidden=empty;
+  document.getElementById('productSales').textContent=empty?'—':'฿'+fmtCompact(data.summary.value);
+  document.getElementById('productQty').textContent=empty?'—':fmt(data.summary.qty);
+  document.getElementById('productCount').textContent=empty?'—':fmt(data.summary.products);
+  document.getElementById('productAverage').textContent=empty?'—':'฿'+fmt(data.summary.value/data.summary.products);
+  if(empty)return;
+  document.getElementById('topProductTable').innerHTML=data.products.slice(0,15).map(p=>`<tr><td>${esc(p.product)}</td><td class="num">฿${fmt(p.value)}</td><td class="num">${fmt(p.qty)}</td><td class="num">${fmt(p.customers)}</td></tr>`).join('');
+  document.getElementById('productSegmentTable').innerHTML=['A','B','C'].map(key=>{const rows=data.products.filter(p=>p.segment===key),value=rows.reduce((s,p)=>s+p.value,0),share=data.summary.value?value/data.summary.value*100:0;return `<tr><td><span class="segment-badge segment-${key}">${key}</span></td><td class="num">${fmt(rows.length)}</td><td class="num">฿${fmt(value)}</td><td class="num">${share.toFixed(1)}%</td></tr>`}).join('');
+  document.getElementById('productSignalTable').innerHTML=['growing','declining','stockout','slow','stable'].map(key=>{const rows=data.products.filter(p=>p.signal===key);return `<tr><td><span class="signal signal-${key}">${productSignalLabels[key]}</span></td><td class="num">${fmt(rows.length)}</td><td class="num">฿${fmt(rows.reduce((s,p)=>s+p.value,0))}</td></tr>`}).join('');
+  renderProductTable();
+}
+function renderProductTable(){
+  const data=window.PRODUCT_ANALYTICS?.[selectedYear];if(!data)return;
+  const metric=document.getElementById('productMetricSelect').value,segment=document.getElementById('productSegmentSelect').value,signal=document.getElementById('productSignalSelect').value,query=document.getElementById('productSearch').value.trim().toLowerCase();
+  const rows=data.products.filter(p=>(segment==='all'||p.segment===segment)&&(signal==='all'||p.signal===signal)&&(!query||`${p.product} ${p.code}`.toLowerCase().includes(query))).sort((a,b)=>(Number(b[metric])||-Infinity)-(Number(a[metric])||-Infinity));
+  document.getElementById('productTableTitle').textContent=`รายละเอียดสินค้า ปี ${selectedYear}`;document.getElementById('productResultCount').textContent=`${fmt(rows.length)} รายการ`;
+  document.getElementById('productDetailTable').innerHTML=rows.map(p=>`<tr><td><span class="segment-badge segment-${p.segment}">${p.segment}</span></td><td><b>${esc(p.product)}</b><br><span class="card-note">${esc(p.code)}</span></td><td><span class="signal signal-${p.signal}">${productSignalLabels[p.signal]}</span></td><td class="num">฿${fmt(p.value)}</td><td class="num ${p.growth!==null&&p.growth<0?'flag-neg':''}">${p.growth===null?'—':`${p.growth>=0?'+':''}${p.growth.toFixed(1)}%`}</td><td class="num">${fmt(p.qty)}</td><td class="num">${fmt(p.customers)}</td><td class="num">${fmt(p.documents)}</td><td class="num">฿${fmt(p.avgPrice)}</td><td class="num ${p.stockQty<0?'flag-neg':''}">${fmt(p.stockQty)}</td><td class="num">฿${fmt(p.stockValue)}</td><td class="num">${p.turnover===null?'—':p.turnover.toFixed(2)+'×'}</td></tr>`).join('')||'<tr><td colspan="12" style="text-align:center;color:var(--muted)">ไม่พบสินค้าตามเงื่อนไข</td></tr>';
+}
+document.getElementById('productMetricSelect').addEventListener('change',renderProductTable);
+document.getElementById('productSegmentSelect').addEventListener('change',renderProductTable);
+document.getElementById('productSignalSelect').addEventListener('change',renderProductTable);
+document.getElementById('productSearch').addEventListener('input',renderProductTable);
 
 // ---------------- Main chart ----------------
 let mainChart;
@@ -446,6 +775,10 @@ document.getElementById('stockTable').innerHTML = RAW.top_stock_value.map((s,i)=
   </tr>`).join('');
 
 renderMain();
+renderDetail();
+renderCustomers();
+renderPurchases();
+renderProducts();
 </script>
 </body>
 </html>
