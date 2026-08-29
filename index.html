@@ -19,6 +19,7 @@
 <script src="product_analytics.js"></script>
 <script src="expense_analytics.js"></script>
 <script src="inventory_analytics.js"></script>
+<script src="receivable_analytics.js"></script>
 <style>
 
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
@@ -421,6 +422,7 @@ tr:last-child td{border-bottom:none;}
   <button data-page="expenses">ค่าใช้จ่าย</button>
   <button data-page="inventory">สต็อก</button>
   <button data-page="executive">Executive Insights</button>
+  <button data-page="receivables">ลูกค้าค้างจ่าย</button>
 </nav>
 
 
@@ -828,6 +830,14 @@ tr:last-child td{border-bottom:none;}
   <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">ตัวชี้วัดเทียบปีก่อน</h3></div><table><thead><tr><th>ตัวชี้วัด</th><th style="text-align:right">ปีที่เลือก</th><th style="text-align:right">เปลี่ยนแปลง</th></tr></thead><tbody id="executiveKpiTable"></tbody></table></div><div class="card"><div class="card-head"><h3 class="card-title">รายการที่ต้องจับตา</h3></div><table><tbody id="executiveWatchTable"></tbody></table></div></div>
 </div>
 
+<div class="wrap page-view" id="receivablesPage" hidden>
+  <div class="customer-tools"><span class="control-label">ปีเอกสาร</span><select id="receivableYearSelect"><option value="all">ทุกปี</option></select><span class="card-note" id="receivableAsOf"></span></div>
+  <div class="customer-kpis"><div class="customer-kpi"><span>ยอดคงค้างทั้งหมด</span><strong id="receivableOutstanding">—</strong></div><div class="customer-kpi"><span>ยอดเกินกำหนด</span><strong id="receivableOverdue">—</strong></div><div class="customer-kpi"><span>ยอดยังไม่ถึงกำหนด</span><strong id="receivableNotDue">—</strong></div><div class="customer-kpi"><span>ลูกค้าที่มียอดค้าง</span><strong id="receivableCustomers">—</strong></div></div>
+  <div class="grid-2"><div class="card"><div class="card-head"><h3 class="card-title">อายุลูกหนี้ (Aging)</h3><span class="card-note">นับจากวันครบกำหนด</span></div><table><thead><tr><th>ช่วงอายุหนี้</th><th style="text-align:right">ยอดค้าง</th><th style="text-align:right">สัดส่วน</th><th style="text-align:right">เอกสาร</th><th style="text-align:right">ลูกค้า</th></tr></thead><tbody id="receivableAgingTable"></tbody></table></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">ลูกค้าที่ควรติดตาม</h3><span class="card-note">เรียงตามยอดเกินกำหนด</span></div><div class="table-scroll"><table><thead><tr><th>ลูกค้า</th><th style="text-align:right">เกินกำหนด</th><th style="text-align:right">ยอดค้าง</th><th style="text-align:right">เก่าสุด</th></tr></thead><tbody id="receivableCustomerTable"></tbody></table></div></div></div>
+  <div class="card"><div class="card-head"><h3 class="card-title">รายละเอียดใบแจ้งหนี้ค้างชำระ</h3><span class="card-note" id="receivableResultCount"></span></div><div class="customer-tools"><span class="control-label">อายุหนี้</span><select id="receivableBucketSelect"><option value="all">ทุกช่วง</option><option value="notDue">ยังไม่ถึงกำหนด</option><option value="1-30">เกิน 1–30 วัน</option><option value="31-60">เกิน 31–60 วัน</option><option value="61-90">เกิน 61–90 วัน</option><option value="91-180">เกิน 91–180 วัน</option><option value="over180">เกิน 180 วัน</option></select><input id="receivableSearch" type="search" placeholder="ค้นหาลูกค้า รหัส หรือเลขเอกสาร"></div><div class="table-scroll"><table class="metric-detail-table"><thead><tr><th>ลูกค้า</th><th>เลขเอกสาร</th><th>วันที่เอกสาร</th><th>ครบกำหนด</th><th>สถานะ</th><th style="text-align:right">ยอดเอกสาร</th><th style="text-align:right">รับแล้ว</th><th style="text-align:right">คงค้าง</th><th style="text-align:right">เกินกำหนด</th></tr></thead><tbody id="receivableInvoiceTable"></tbody></table></div></div>
+</div>
+
 <div class="footer">
   <p><b>หมายเหตุข้อมูล:</b> ยอดขาย/ซื้อ คำนวณจากมูลค่าก่อน VAT (netval) · ค่าใช้จ่ายดำเนินงานกรองเฉพาะบัญชีหมวดค่าใช้จ่าย (กลุ่ม 5) และตัดรายการ "ซื้อ" ออกเพื่อไม่ให้นับซ้ำกับยอดซื้อ · ข้อมูลย้อนหลังของยอดซื้อ/ค่าใช้จ่าย/เงินรับเริ่มบันทึกตั้งแต่ปี 2020–2021 เป็นต้นไป ปีก่อนหน้าจึงแสดงเฉพาะยอดขาย · ข้อมูลชุดนี้เป็นข้อมูล export ณ เวลาที่ดึง ไม่ใช่ real-time</p>
 
@@ -941,6 +951,9 @@ yearSelect.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('
 
 yearSelect.value = selectedYear;
 
+const receivableYearSelect=document.getElementById('receivableYearSelect');
+receivableYearSelect.innerHTML='<option value="all">ทุกปี</option>'+Object.keys(window.RECEIVABLE_ANALYTICS?.years||{}).sort().map(year=>`<option value="${year}">${year}</option>`).join('');
+
 
 
 document.getElementById('metricSelect').addEventListener('change', e=>{ metric = e.target.value; renderMain(); renderDetail(); });
@@ -971,15 +984,17 @@ document.querySelectorAll('.page-nav button').forEach(btn=>{
     document.getElementById('expensesPage').hidden = page !== 'expenses';
     document.getElementById('inventoryPage').hidden = page !== 'inventory';
     document.getElementById('executivePage').hidden = page !== 'executive';
+    document.getElementById('receivablesPage').hidden = page !== 'receivables';
     document.getElementById('modeLabel').style.display = isOverview ? 'inline' : 'none';
 
     document.getElementById('modeSeg').style.display = isOverview ? 'flex' : 'none';
 
     document.getElementById('metricLabel').style.display = ['overview','detail'].includes(page) ? 'inline' : 'none';
     document.getElementById('metricSelect').style.display = ['overview','detail'].includes(page) ? 'inline-block' : 'none';
-    document.getElementById('yearLabel').style.display = !isOverview || mode!=='yearly' ? 'inline' : 'none';
+    const showSharedYear=page!=='receivables'&&(!isOverview||mode!=='yearly');
+    document.getElementById('yearLabel').style.display = showSharedYear ? 'inline' : 'none';
 
-    yearSelect.style.display = !isOverview || mode!=='yearly' ? 'inline-block' : 'none';
+    yearSelect.style.display = showSharedYear ? 'inline-block' : 'none';
 
     if(page === 'detail') renderDetail();
 
@@ -992,6 +1007,7 @@ document.querySelectorAll('.page-nav button').forEach(btn=>{
     if(page === 'expenses') renderExpenses();
     if(page === 'inventory') renderInventory();
     if(page === 'executive') renderExecutive();
+    if(page === 'receivables') renderReceivables();
   });
 
 });
@@ -1350,6 +1366,29 @@ function renderExecutive(){
   document.getElementById('executiveWatchTable').innerHTML=watch.map(x=>`<tr><td>${x[0]}</td><td class="num flag-neg">${x[1]}</td></tr>`).join('');
 }
 
+const receivableBucketLabels={notDue:'ยังไม่ถึงกำหนด','1-30':'เกิน 1–30 วัน','31-60':'เกิน 31–60 วัน','61-90':'เกิน 61–90 วัน','91-180':'เกิน 91–180 วัน',over180:'เกิน 180 วัน'};
+const receivableData=()=>receivableYearSelect.value==='all'?window.RECEIVABLE_ANALYTICS.all:window.RECEIVABLE_ANALYTICS.years[receivableYearSelect.value];
+function renderReceivables(){
+  const data=receivableData();if(!data)return;
+  document.getElementById('receivableAsOf').textContent=`สถานะ ณ ${data.summary.asOf} · ปีหมายถึงปีของเอกสารขาย`;
+  document.getElementById('receivableOutstanding').textContent='฿'+fmtCompact(data.summary.outstanding);
+  document.getElementById('receivableOverdue').textContent='฿'+fmtCompact(data.summary.overdue);
+  document.getElementById('receivableNotDue').textContent='฿'+fmtCompact(data.summary.notDue);
+  document.getElementById('receivableCustomers').textContent=fmt(data.summary.customers)+' ราย';
+  document.getElementById('receivableAgingTable').innerHTML=data.buckets.map(bucket=>{const share=data.summary.outstanding?bucket.value/data.summary.outstanding*100:0;return `<tr><td>${receivableBucketLabels[bucket.key]}</td><td class="num ${bucket.key!=='notDue'?'flag-neg':''}">฿${fmt(bucket.value)}</td><td class="num">${share.toFixed(1)}%</td><td class="num">${fmt(bucket.invoices)}</td><td class="num">${fmt(bucket.customers)}</td></tr>`}).join('');
+  document.getElementById('receivableCustomerTable').innerHTML=data.customers.slice(0,20).map(c=>`<tr><td><b>${esc(c.customer)}</b><br><span class="card-note">${esc(c.code)}</span></td><td class="num flag-neg">฿${fmt(c.overdue)}</td><td class="num">฿${fmt(c.outstanding)}</td><td class="num">${fmt(c.oldestDays)} วัน</td></tr>`).join('');
+  renderReceivableInvoices();
+}
+function renderReceivableInvoices(){
+  const data=receivableData();if(!data)return;const bucket=document.getElementById('receivableBucketSelect').value,query=document.getElementById('receivableSearch').value.trim().toLowerCase();
+  const rows=data.invoices.filter(i=>(bucket==='all'||i.bucket===bucket)&&(!query||`${i.customer} ${i.code} ${i.docnum}`.toLowerCase().includes(query)));
+  document.getElementById('receivableResultCount').textContent=`${fmt(rows.length)} เอกสาร · คงค้าง ฿${fmt(rows.reduce((sum,i)=>sum+i.balance,0))}`;
+  document.getElementById('receivableInvoiceTable').innerHTML=rows.map(i=>`<tr><td><b>${esc(i.customer)}</b><br><span class="card-note">${esc(i.code)}</span></td><td class="mono">${esc(i.docnum)}</td><td>${i.docdat}</td><td>${i.duedat}</td><td><span class="signal signal-${i.daysOverdue>0?'declining':'growing'}">${i.daysOverdue>0?'เกินกำหนด':'ยังไม่ถึงกำหนด'}</span></td><td class="num">฿${fmt(i.total)}</td><td class="num">฿${fmt(i.received)}</td><td class="num ${i.daysOverdue>0?'flag-neg':''}">฿${fmt(i.balance)}</td><td class="num ${i.daysOverdue>0?'flag-neg':''}">${i.daysOverdue>0?fmt(i.daysOverdue)+' วัน':'—'}</td></tr>`).join('')||'<tr><td colspan="9" style="text-align:center;color:var(--muted)">ไม่พบใบแจ้งหนี้ตามเงื่อนไข</td></tr>';
+}
+receivableYearSelect.addEventListener('change',renderReceivables);
+document.getElementById('receivableBucketSelect').addEventListener('change',renderReceivableInvoices);
+document.getElementById('receivableSearch').addEventListener('input',renderReceivableInvoices);
+
 // ---------------- Main chart ----------------
 let mainChart;
 
@@ -1630,6 +1669,7 @@ renderFinance();
 renderExpenses();
 renderInventory();
 renderExecutive();
+renderReceivables();
 </script>
 
 </body>
